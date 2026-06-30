@@ -29,7 +29,7 @@ st.markdown(
 )
 st.divider()
 
-# ── DOCX Helpers ──────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────
 
 def set_cell_color(cell, hex_color):
     tc = cell._tc
@@ -94,7 +94,7 @@ def build_docx(meta, rows):
     sec.top_margin    = Cm(1.27)
     sec.bottom_margin = Cm(1.27)
 
-    # Title
+    # ── Company Header ─────────────────────────────────
     hdr = doc.add_paragraph()
     hdr.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r = hdr.add_run(
@@ -128,67 +128,112 @@ def build_docx(meta, rows):
     tbl = doc.add_table(rows=0, cols=14)
     tbl.style = 'Table Grid'
 
-    # Header Row 1
-    r1 = tbl.add_row()
-    h1_items = [
+    # ── SINGLE MERGED HEADER ROW ───────────────────────
+    # We use ONE header row with sub-labels built in
+    hdr_row = tbl.add_row()
+    hdr_cells = hdr_row.cells
+
+    # Set all header cells grey and bold
+    col_labels = [
+        "S/N",
+        "Activity\nElement",
+        "Hazards /\nImpact",
+        "Who Might Be\nHarmed\nand How?",
+        "Risk &\nPotential\nConsequences",
+        "Probability\n(P)",
+        "Severity\n(S)",
+        "Risk Rating\n(R)\nP×S",
+        "Initial Risk Level\nLow / Moderate\n/ High / Extreme",
+        "Action to be Taken to Reduce the Risk\n"
+        "(Hierarchy of Safety Controls)\n"
+        "(Include legal & regulatory reference)",
+        "Probability\n(P)",
+        "Severity\n(S)",
+        "Risk Rating\n(R)\nP×S",
+        "Residual Risk Level\nLow / Moderate\n/ High / Extreme",
+    ]
+
+    # Span label row: cols 5-6-7 under "Risk Classification"
+    # and cols 10-11-12 under "Revised Risk Classification"
+    # We do this with a 2-row header
+
+    # ── ROW A: Top-level group headers ────────────────
+    row_a = tbl.add_row()
+    a = row_a.cells
+
+    top_groups = [
         ("S/N", 1),
         ("Activity\nElement", 1),
         ("Hazards /\nImpact", 1),
         ("Who Might Be\nHarmed and How?", 1),
         ("Risk & Potential\nConsequences", 1),
-        ("Risk\nClassification", 3),
-        ("Initial Risk Level\nLow/Moderate/High/Extreme", 1),
+        ("Risk Classification", 3),
+        (
+            "Initial Risk Level\n"
+            "Low / Moderate / High / Extreme", 1
+        ),
         (
             "Action to be Taken to Reduce the Risk\n"
             "(Hierarchy of Safety Controls)\n"
             "(Legal & Regulatory Reference)", 1
         ),
         ("Revised Risk\nClassification", 3),
-        ("Residual Risk Level\nLow/Moderate/High/Extreme", 1),
+        (
+            "Residual Risk Level\n"
+            "Low / Moderate / High / Extreme", 1
+        ),
     ]
-    col_cursor = 0
-    for text, span in h1_items:
-        cell = r1.cells[col_cursor]
+
+    cur = 0
+    for text, span in top_groups:
+        cell = a[cur]
         cell.text = ""
-        para = cell.paragraphs[0]
-        para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = para.add_run(text)
-        run.bold = True
-        run.font.size = Pt(8)
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        rn = p.add_run(text)
+        rn.bold = True
+        rn.font.size = Pt(8)
         set_cell_color(cell, "C0C0C0")
         set_borders(cell)
         if span > 1:
-            cell.merge(r1.cells[col_cursor + span - 1])
-        col_cursor += span
+            cell.merge(a[cur + span - 1])
+        cur += span
 
-    # Header Row 2
-    r2 = tbl.add_row()
-    h2_labels = [
-        "S/N", "Activity\nElement",
+    # Remove the blank row we added first
+    tbl._tbl.remove(hdr_row._tr)
+
+    # ── ROW B: Sub-headers ─────────────────────────────
+    row_b = tbl.add_row()
+    b = row_b.cells
+    sub_labels = [
+        "S/N",
+        "Activity\nElement",
         "Hazards /\nImpact",
-        "Who Might Be\nHarmed?",
-        "Risk & Potential\nConsequences",
-        "Probability\n(P)", "Severity\n(S)",
+        "Who Might\nBe Harmed?",
+        "Risk &\nPotential\nConsequences",
+        "Probability\n(P)",
+        "Severity\n(S)",
         "Risk Rating\n(R) P×S",
         "Initial Risk\nLevel",
         "Controls\n(Hierarchy + CoP Ref)",
-        "Probability\n(P)", "Severity\n(S)",
+        "Probability\n(P)",
+        "Severity\n(S)",
         "Risk Rating\n(R) P×S",
-        "Residual Risk\nLevel",
+        "Residual\nRisk Level",
     ]
-    for idx, label in enumerate(h2_labels):
-        cell = r2.cells[idx]
+    for idx, label in enumerate(sub_labels):
+        cell = b[idx]
         cell.text = ""
-        para = cell.paragraphs[0]
-        para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = para.add_run(label)
-        run.bold = True
-        run.font.size = Pt(7)
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        rn = p.add_run(label)
+        rn.bold = True
+        rn.font.size = Pt(7)
         set_cell_color(cell, "BFBFBF")
         set_borders(cell)
         cell.width = col_w[idx]
 
-    # Data Rows
+    # ── DATA ROWS ──────────────────────────────────────
     for i, rd in enumerate(rows, start=1):
         ip  = int(rd.get("initial_p", 3))
         is_ = int(rd.get("initial_s", 3))
@@ -197,7 +242,7 @@ def build_docx(meta, rows):
         rs  = int(rd.get("residual_s", 3))
         rr  = rp * rs
 
-        # Build controls string
+        # Build controls lines
         ctrl = rd.get("controls", {})
         lines = []
         order = [
@@ -229,28 +274,35 @@ def build_docx(meta, rows):
         )
         set_borders(cells[0])
 
-        # Col 1: Activity Element
+        # Col 1: Activity
         add_cell_text(
-            cells[1], rd.get("activity", ""),
+            cells[1],
+            rd.get("activity", ""),
             bold=True, size=9
         )
         set_borders(cells[1])
 
-        # Col 2: Hazards
+        # Col 2: Hazard
         add_cell_text(
-            cells[2], rd.get("hazard", ""), size=9
+            cells[2],
+            rd.get("hazard", ""),
+            size=9
         )
         set_borders(cells[2])
 
-        # Col 3: Who Harmed (4th column)
+        # Col 3: Who Harmed
         add_cell_text(
-            cells[3], rd.get("who_harmed", ""), size=9
+            cells[3],
+            rd.get("who_harmed", ""),
+            size=9
         )
         set_borders(cells[3])
 
-        # Col 4: Consequences (5th column)
+        # Col 4: Consequences
         add_cell_text(
-            cells[4], rd.get("consequences", ""), size=9
+            cells[4],
+            rd.get("consequences", ""),
+            size=9
         )
         set_borders(cells[4])
 
@@ -286,21 +338,24 @@ def build_docx(meta, rows):
         set_cell_color(cells[8], risk_color(ir))
         set_borders(cells[8])
 
-        # Col 9: Controls
+        # Col 9: Controls with hierarchy
         cells[9].text = ""
-        first_para = cells[9].paragraphs[0]
-        for j, line in enumerate(lines):
-            if j == 0:
-                para9 = first_para
+        first = True
+        for line in lines:
+            if first:
+                para9 = cells[9].paragraphs[0]
+                first = False
             else:
                 para9 = cells[9].add_paragraph()
-            is_heading = line.endswith(":") and \
-                         line.replace(":", "").isupper()
-            run9 = para9.add_run(line)
-            run9.font.size = Pt(8)
-            if is_heading:
-                run9.bold = True
-                run9.font.color.rgb = RGBColor(192, 0, 0)
+            is_hdr = (
+                line.endswith(":")
+                and line.replace(":", "").strip().isupper()
+            )
+            rn9 = para9.add_run(line)
+            rn9.font.size = Pt(8)
+            if is_hdr:
+                rn9.bold = True
+                rn9.font.color.rgb = RGBColor(192, 0, 0)
         set_borders(cells[9])
 
         # Col 10: Residual P
@@ -377,6 +432,13 @@ workers_involved = st.text_input(
     placeholder="e.g. Excavation crew, site workers, public"
 )
 
+num_rows = st.slider(
+    "Number of activity rows to generate",
+    min_value=6,
+    max_value=15,
+    value=10
+)
+
 # ── GENERATE ──────────────────────────────────────────────
 if st.button(
     "⚡ Generate Risk Assessment (.docx)",
@@ -386,52 +448,91 @@ if st.button(
     if not activity:
         st.error("Please enter a work activity.")
     else:
-        with st.spinner("Generating — please wait..."):
+        with st.spinner(
+            f"Generating {num_rows} rows — please wait..."
+        ):
             try:
                 client = anthropic.Anthropic(
                     api_key=os.getenv("ANTHROPIC_API_KEY")
                 )
 
                 if emirate == "Abu Dhabi":
-                    reg = "ADOSH-SF v4.0 ADOSH CoPs"
+                    reg = (
+                        "ADOSH-SF v4.0 — cite specific "
+                        "CoP numbers e.g. CoP 29.0, CoP 2.0"
+                    )
                 else:
                     reg = (
-                        "Dubai Municipality Code "
-                        "Construction Safety Practice"
+                        "Dubai Municipality Code of "
+                        "Construction Safety Practice — "
+                        "cite chapter numbers"
                     )
 
-                prompt = f"""HSE expert in {emirate} UAE.
-Generate Risk Assessment JSON for: {activity}
+                prompt = f"""You are a senior HSE engineer 
+in {emirate}, UAE.
+
+Generate a detailed Risk Assessment for:
+Activity: {activity}
 Project: {project_name}
 Description: {work_description}
-Who harmed: {workers_involved}
+Who might be harmed: {workers_involved}
 Regulation: {reg}
 
-Return ONLY a JSON array of exactly 6 objects.
-No text before or after. Start with [ end with ]
+Return ONLY a JSON array of exactly {num_rows} objects.
+No text before or after.
+Start immediately with [ and end with ]
 
-Each object has these keys only:
-- activity: string (max 10 words)
-- hazard: string (max 15 words)
-- consequences: string (max 15 words)
-- who_harmed: string (max 10 words)
-- initial_p: integer 1-5
-- initial_s: integer 1-5
-- controls: object with keys:
-    elimination: array of 1-2 short strings
-    substitution: array of 1-2 short strings
-    engineering: array of 2-3 short strings with CoP ref
-    administrative: array of 2-3 short strings with CoP ref
-    ppe: array of 2-3 short strings with CoP 2.0 ref
-- residual_p: integer 1-5
-- residual_s: integer 1-5
+Each object must have EXACTLY these keys:
+{{
+  "activity": "task step name (max 8 words)",
+  "hazard": "specific hazard (max 12 words)",
+  "consequences": "injury or damage (max 12 words)",
+  "who_harmed": "who is at risk (max 8 words)",
+  "initial_p": 4,
+  "initial_s": 4,
+  "controls": {{
+    "elimination": ["short measure (max 10 words)"],
+    "substitution": ["short measure (max 10 words)"],
+    "engineering": [
+      "measure with CoP ref (max 12 words)",
+      "measure with CoP ref (max 12 words)"
+    ],
+    "administrative": [
+      "measure with CoP ref (max 12 words)",
+      "PTW required per CoP 21.0"
+    ],
+    "ppe": [
+      "PPE item per CoP 2.0 (max 10 words)",
+      "PPE item per CoP 2.0 (max 10 words)"
+    ]
+  }},
+  "residual_p": 1,
+  "residual_s": 3
+}}
 
-IMPORTANT: Keep all strings SHORT (under 20 words each).
-This ensures valid JSON. Return ONLY the JSON array."""
+Cover these different aspects of the activity:
+- Site preparation and setup
+- Main excavation/construction work
+- Equipment operation
+- Working at heights (if applicable)
+- Electrical hazards
+- Manual handling
+- Heat stress (UAE climate)
+- Traffic and logistics
+- Emergency situations
+- Environmental hazards
+- Chemical/dust exposure
+- Lifting operations
+- Fire prevention
+- Worker welfare
+- Final inspection
+
+Keep all string values SHORT to ensure valid JSON.
+Return ONLY the JSON array."""
 
                 response = client.messages.create(
                     model="claude-sonnet-4-6",
-                    max_tokens=4000,
+                    max_tokens=8000,
                     messages=[
                         {"role": "user", "content": prompt}
                     ]
@@ -439,17 +540,17 @@ This ensures valid JSON. Return ONLY the JSON array."""
 
                 raw = response.content[0].text.strip()
 
-                # Clean markdown if present
+                # Clean markdown
                 raw = re.sub(
                     r'```json|```', '', raw
                 ).strip()
 
-                # Extract JSON array only
+                # Extract array only
                 start = raw.find("[")
                 end   = raw.rfind("]") + 1
                 if start == -1 or end == 0:
                     raise ValueError(
-                        "No JSON array found in response"
+                        "No JSON array in response"
                     )
                 raw = raw[start:end]
 
@@ -468,11 +569,11 @@ This ensures valid JSON. Return ONLY the JSON array."""
                 docx_buf = build_docx(meta, ra_rows)
 
                 st.success(
-                    "✅ Risk Assessment generated — "
+                    f"✅ {len(ra_rows)} rows generated — "
                     "ENGC 14-Column Format!"
                 )
 
-                # Preview table
+                # Preview
                 import pandas as pd
                 preview = []
                 for i, r in enumerate(ra_rows, 1):
@@ -484,11 +585,11 @@ This ensures valid JSON. Return ONLY the JSON array."""
                         "#": i,
                         "Activity": r.get("activity",""),
                         "Hazard":   r.get("hazard",""),
-                        "P": ip, "S": is_,
-                        "R": ip*is_,
-                        "Initial": risk_label(ip*is_),
-                        "P2": rp, "S2": rs_,
-                        "R2": rp*rs_,
+                        "P":  ip,  "S":  is_,
+                        "R":  ip * is_,
+                        "Initial":  risk_label(ip*is_),
+                        "P2": rp,  "S2": rs_,
+                        "R2": rp * rs_,
                         "Residual": risk_label(rp*rs_),
                     })
                 st.dataframe(
@@ -501,7 +602,9 @@ This ensures valid JSON. Return ONLY the JSON array."""
                     f"_{ra_date}_{emirate}.docx"
                 )
                 st.download_button(
-                    label="⬇️ Download Risk Assessment (.docx)",
+                    label=(
+                        "⬇️ Download Risk Assessment (.docx)"
+                    ),
                     data=docx_buf,
                     file_name=fname,
                     mime=(
@@ -513,7 +616,9 @@ This ensures valid JSON. Return ONLY the JSON array."""
 
             except json.JSONDecodeError as e:
                 st.error(
-                    f"JSON error: {e} — Please try again."
+                    f"JSON error: {e}\n"
+                    "Please try again — "
+                    "AI response was too complex."
                 )
             except Exception as e:
                 st.error(f"Error: {str(e)}")

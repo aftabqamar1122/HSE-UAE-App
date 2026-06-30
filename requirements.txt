@@ -1,6 +1,7 @@
-streamlit==1.35.0
-anthropic==0.28.0
-gspread==6.1.2
-google-auth==2.29.0
-pandas==2.2.2
-python-dotenv==1.0.1
+streamlit
+anthropic
+gspread
+google-auth
+google-auth-oauthlib
+pandas
+python-dotenv

@@ -183,7 +183,7 @@ with col_contact:
     <hr style="border-color:rgba(255,255,255,0.3);
                margin:10px 0;">
     <div style="font-size:11px; opacity:0.8;">
-        NEBOSH IGC | ISO 45001 | ADOSH-SF v4.0
+       15 YEARS + EXPERIENCE| MASTER IN QPM & MEd | ADOSH SENIOR PRACTISIONER | NEBOSH Idip | ISO 45001 | ADOSH-SF v4.0
     </div>
 </div>
 """, unsafe_allow_html=True)

@@ -1,4 +1,51 @@
 import streamlit as st
+
+# ── MUST BE FIRST — before any other st. calls ────────────
+st.set_page_config(
+    page_title="UAE HSE Compliance App — ENGC",
+    page_icon="🦺",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ── NOW IMPORT AUTH ───────────────────────────────────────
+from auth import (
+    check_access,
+    show_login_page,
+    show_paywall,
+    show_trial_banner,
+    trial_expired,
+)
+import time
+from dotenv import load_dotenv
+import os
+from datetime import date
+
+load_dotenv()
+
+# ── ACCESS CONTROL ────────────────────────────────────────
+if st.session_state.get("show_paywall"):
+    show_paywall()
+    st.stop()
+
+if (st.session_state.get("trial_started")
+        and trial_expired()):
+    show_paywall()
+    st.stop()
+
+if not check_access():
+    show_login_page()
+    st.stop()
+
+if (st.session_state.get("trial_started")
+        and not st.session_state.get(
+            "authenticated")):
+    show_trial_banner()
+
+# ── YOUR EXISTING app.py CODE CONTINUES BELOW ─────────────
+# (Keep all your existing CSS and content below this line)
+# (Do NOT add another st.set_page_config below)
+import streamlit as st
 from dotenv import load_dotenv
 import os
 from datetime import date

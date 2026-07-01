@@ -1,5 +1,5 @@
 import streamlit as st
-import streamlit.components.v1
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 import os
 from datetime import date
@@ -8,7 +8,7 @@ import time
 
 load_dotenv()
 
-# ── PAGE CONFIG — MUST BE FIRST ───────────────────────────
+# ── PAGE CONFIG ───────────────────────────────────────────
 st.set_page_config(
     page_title="UAE HSE Compliance App — ENGC",
     page_icon="🦺",
@@ -17,39 +17,41 @@ st.set_page_config(
 )
 
 # ── YOUR DETAILS ──────────────────────────────────────────
-YOUR_NAME        = "Muhammad Aftab Qamar"
-YOUR_TITLE       = "Senior HSSE Engineer | ENGC"
-YOUR_WHATSAPP    = "+971 52 267 1122"
-YOUR_EMAIL       = "aftabqamar1122@hotmail.com"
-FREE_TRIAL_MINS  = 15
-MASTER_PWD       = os.getenv("MASTER_PASSWORD",
-                              "ENGC@HSE2024")
-SHARE_BASE       = os.getenv("SHARE_PASSWORD",
-                              "ENGC_BLOOM_2024")
+YOUR_NAME       = "Muhammad Aftab Qamar"
+YOUR_TITLE      = "Senior HSSE Engineer | ENGC"
+YOUR_WHATSAPP   = "+971 52 267 1122"
+YOUR_EMAIL      = "aftabqamar1122@hotmail.com"
+FREE_TRIAL_MINS = 15
+MASTER_PWD      = os.getenv(
+    "MASTER_PASSWORD", "ENGC@HSE2024"
+)
+SHARE_BASE      = os.getenv(
+    "SHARE_PASSWORD", "ENGC_BLOOM_2024"
+)
 
-ADCB_BANK        = "Abu Dhabi Commercial Bank (ADCB)"
-ADCB_TITLE       = "MUHAMMAD AFTAB QAMAR"
-ADCB_ACC         = "11390882810001"
-ADCB_IBAN        = "AE020030011390882810001"
+ADCB_BANK       = "Abu Dhabi Commercial Bank (ADCB)"
+ADCB_TITLE      = "MUHAMMAD AFTAB QAMAR"
+ADCB_ACC        = "11390882810001"
+ADCB_IBAN       = "AE020030011390882810001"
 
-ALFALAH_BANK     = "Bank Alfalah"
-ALFALAH_TITLE    = "MUHAMMAD AFTAB QAMAR"
-ALFALAH_ACC      = "56055002773488"
-ALFALAH_IBAN     = "PK90ALFH5605005002773488"
-ALFALAH_SWIFT    = "ALFHPKKAXXX"
-ALFALAH_BRANCH   = "Ferozpur Road Lahore IBG"
-ALFALAH_CODE     = "5605"
+ALFALAH_BANK    = "Bank Alfalah"
+ALFALAH_TITLE   = "MUHAMMAD AFTAB QAMAR"
+ALFALAH_ACC     = "56055002773488"
+ALFALAH_IBAN    = "PK90ALFH5605005002773488"
+ALFALAH_SWIFT   = "ALFHPKKAXXX"
+ALFALAH_BRANCH  = "Ferozpur Road Lahore IBG"
+ALFALAH_CODE    = "5605"
 
-JAZZCASH_NO      = "+92 321 435 9532"
-JAZZCASH_NAME    = "MUHAMMAD AFTAB QAMAR"
+JAZZCASH_NO     = "+92 321 435 9532"
+JAZZCASH_NAME   = "MUHAMMAD AFTAB QAMAR"
 
 
 # ── AUTH HELPERS ──────────────────────────────────────────
 
 def get_timed_pwd():
-    now  = date.today()
-    hr   = __import__('datetime').datetime.utcnow().hour
-    ts   = f"{now.strftime('%Y%m%d')}{hr:02d}"
+    import datetime as dt
+    now = dt.datetime.utcnow()
+    ts  = f"{now.strftime('%Y%m%d')}{now.hour:02d}"
     return hashlib.sha256(
         f"{SHARE_BASE}{ts}".encode()
     ).hexdigest()[:8].upper()
@@ -59,7 +61,9 @@ def trial_expired():
     start = st.session_state.get("trial_start", 0)
     if not start:
         return False
-    return (time.time() - start) / 60 >= FREE_TRIAL_MINS
+    return (
+        (time.time() - start) / 60 >= FREE_TRIAL_MINS
+    )
 
 
 def is_authenticated():
@@ -81,11 +85,62 @@ def trial_running():
     )
 
 
-# ── CUSTOM CSS ────────────────────────────────────────────
+# ── BROWSER STORAGE FUNCTIONS ─────────────────────────────
+
+def inject_trial_checker():
+    """Check browser localStorage for used trial."""
+    components.html("""
+<script>
+(function() {
+    var trialUsed = localStorage.getItem(
+        'hse_app_trial_used'
+    );
+    if (trialUsed === 'true') {
+        var url = new URL(window.location.href);
+        if (url.searchParams.get(
+                'trial_status') !== 'expired') {
+            url.searchParams.set(
+                'trial_status', 'expired'
+            );
+            window.history.replaceState(
+                {}, '', url.toString()
+            );
+            window.location.reload();
+        }
+    }
+})();
+</script>
+""", height=0)
+
+
+def mark_trial_in_browser():
+    """Permanently mark trial used in browser."""
+    components.html("""
+<script>
+localStorage.setItem('hse_app_trial_used', 'true');
+localStorage.setItem(
+    'hse_app_trial_time',
+    new Date().toISOString()
+);
+</script>
+""", height=0)
+
+
+def clear_trial_restriction():
+    """Clear trial block for subscribers."""
+    components.html("""
+<script>
+localStorage.setItem(
+    'hse_app_trial_used', 'subscribed'
+);
+localStorage.setItem('hse_app_subscribed', 'true');
+</script>
+""", height=0)
+
+
+# ── CSS ───────────────────────────────────────────────────
 st.markdown("""
 <style>
-
-/* Sidebar dark blue gradient */
 [data-testid="stSidebar"] {
     background: linear-gradient(
         180deg,
@@ -96,8 +151,6 @@ st.markdown("""
     min-width: 255px !important;
     max-width: 255px !important;
 }
-
-/* All sidebar text white */
 [data-testid="stSidebar"],
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
@@ -105,8 +158,6 @@ st.markdown("""
 [data-testid="stSidebar"] div {
     color: rgba(255,255,255,0.9) !important;
 }
-
-/* Sidebar nav links */
 [data-testid="stSidebarNav"] a {
     padding: 9px 16px !important;
     margin: 2px 6px !important;
@@ -115,8 +166,6 @@ st.markdown("""
     font-size: 13px !important;
     font-weight: 500 !important;
     border-left: 3px solid transparent !important;
-    display: flex !important;
-    align-items: center !important;
 }
 [data-testid="stSidebarNav"] a:hover {
     background: rgba(255,255,255,0.1) !important;
@@ -129,12 +178,11 @@ st.markdown("""
     color: white !important;
     font-weight: 700 !important;
 }
-
-/* Sidebar buttons */
 [data-testid="stSidebar"] .stButton > button {
     background: rgba(255,255,255,0.1) !important;
     color: white !important;
-    border: 1px solid rgba(255,255,255,0.25) !important;
+    border: 1px solid
+        rgba(255,255,255,0.25) !important;
     border-radius: 8px !important;
     font-size: 12px !important;
     padding: 6px 4px !important;
@@ -145,15 +193,9 @@ st.markdown("""
     border-color: #FFC000 !important;
     color: #FFC000 !important;
 }
-
-/* Hide Streamlit default elements */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-
-/* Main background */
 .main {background-color: #f4f6f9 !important;}
-
-/* Trial banner */
 .trial-bar {
     background: linear-gradient(
         90deg, #1B5E20, #2E7D32
@@ -178,8 +220,6 @@ footer {visibility: hidden;}
     margin-bottom: 16px;
     text-align: center;
 }
-
-/* Payment method box */
 .pay-box {
     background: #F8F9FA;
     border: 2px solid #1F3864;
@@ -202,20 +242,18 @@ footer {visibility: hidden;}
     color: #1F3864;
     font-weight: 600;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════
 # PAYWALL PAGE
-# ══════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════
 
 def show_paywall():
     st.markdown("""
-<div style="
-    background:linear-gradient(
-        135deg,#1F3864,#C00000);
+<div style="background:linear-gradient(
+    135deg,#1F3864,#C00000);
     border-radius:16px;padding:36px;
     color:white;text-align:center;
     margin-bottom:24px;">
@@ -232,11 +270,9 @@ def show_paywall():
 """, unsafe_allow_html=True)
 
     c1, c2 = st.columns([1, 1.2])
-
     with c1:
         st.markdown("""
-<div style="
-    background:white;
+<div style="background:white;
     border:2px solid #1F3864;
     border-radius:12px;
     padding:24px;text-align:center;">
@@ -244,7 +280,7 @@ def show_paywall():
         letter-spacing:1px;">
         FULL ACCESS — 30 DAYS
     </div>
-    <div style="font-size:60px;
+    <div style="font-size:58px;
         font-weight:800;color:#1F3864;
         line-height:1.1;">
         50
@@ -256,7 +292,8 @@ def show_paywall():
     <div style="text-align:left;
         font-size:13px;color:#333;
         line-height:1.9;">
-        ✅ AI HSE Chatbot (Abu Dhabi + Dubai)<br>
+        ✅ AI HSE Chatbot
+        (Abu Dhabi + Dubai)<br>
         ✅ Risk Assessment Generator (.docx)<br>
         ✅ Toolbox Talk Generator<br>
         ✅ Permit to Work System<br>
@@ -288,7 +325,6 @@ def show_paywall():
 
     st.divider()
     st.markdown("## 💳 Payment Methods")
-
     t1, t2, t3 = st.tabs([
         "🏦 ADCB Bank (UAE — AED)",
         "🏦 Bank Alfalah (Pakistan)",
@@ -321,19 +357,17 @@ def show_paywall():
         <span class="pay-lbl">Amount</span>
         <span class="pay-val"
             style="color:#C00000;
-                   font-size:16px;">
-            50 AED
-        </span>
+            font-size:16px;">50 AED</span>
     </div>
-    <div style="
-        background:#E8F5E9;
+    <div style="background:#E8F5E9;
         border-left:4px solid #2E7D32;
         border-radius:6px;
         padding:12px;margin-top:12px;
         font-size:13px;">
-        ✅ After transfer, WhatsApp screenshot to:
+        ✅ WhatsApp screenshot to:
         <strong>{YOUR_WHATSAPP}</strong><br>
-        📝 Include: <strong>Full Name + Email</strong>
+        📝 Include:
+        <strong>Full Name + Email</strong>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -342,7 +376,7 @@ def show_paywall():
         st.markdown(f"""
 <div class="pay-box">
     <h3 style="color:#1F3864;">
-        🏦 Bank Alfalah — Pakistan (Pay in PKR)
+        🏦 Bank Alfalah — Pakistan
     </h3>
     <div class="pay-row">
         <span class="pay-lbl">Bank Name</span>
@@ -376,19 +410,19 @@ def show_paywall():
         <span class="pay-lbl">Amount</span>
         <span class="pay-val"
             style="color:#C00000;">
-            PKR equivalent of 50 AED
-            (~3,800–4,200 PKR)
+            PKR equiv. of 50 AED
+            (~3,800-4,200 PKR)
         </span>
     </div>
-    <div style="
-        background:#E8F5E9;
+    <div style="background:#E8F5E9;
         border-left:4px solid #2E7D32;
         border-radius:6px;
         padding:12px;margin-top:12px;
         font-size:13px;">
-        ✅ After transfer, WhatsApp screenshot to:
+        ✅ WhatsApp screenshot to:
         <strong>{YOUR_WHATSAPP}</strong><br>
-        📝 Include: <strong>Full Name + Email</strong>
+        📝 Include:
+        <strong>Full Name + Email</strong>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -397,10 +431,12 @@ def show_paywall():
         st.markdown(f"""
 <div class="pay-box">
     <h3 style="color:#1F3864;">
-        📱 JazzCash — Pakistan (Pay in PKR)
+        📱 JazzCash — Pakistan
     </h3>
     <div class="pay-row">
-        <span class="pay-lbl">JazzCash Number</span>
+        <span class="pay-lbl">
+            JazzCash Number
+        </span>
         <span class="pay-val">{JAZZCASH_NO}</span>
     </div>
     <div class="pay-row">
@@ -411,36 +447,33 @@ def show_paywall():
         <span class="pay-lbl">Amount</span>
         <span class="pay-val"
             style="color:#C00000;">
-            PKR equivalent of 50 AED
-            (~3,800–4,200 PKR)
+            PKR equiv. of 50 AED
         </span>
     </div>
-    <div style="
-        background:#E8F5E9;
+    <div style="background:#E8F5E9;
         border-left:4px solid #2E7D32;
         border-radius:6px;
         padding:12px;margin-top:12px;
         font-size:13px;">
-        ✅ Open JazzCash → Send Money →
-        Mobile Account<br>
-        → Enter <strong>{JAZZCASH_NO}</strong>
-        → Send amount<br>
-        📸 WhatsApp screenshot to:
+        ✅ WhatsApp screenshot to:
         <strong>{YOUR_WHATSAPP}</strong><br>
-        📝 Include: <strong>Full Name + Email</strong>
+        📝 Include:
+        <strong>Full Name + Email</strong>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
     st.divider()
-    st.markdown("### ✅ Already Paid? Enter Your Code")
+    st.markdown(
+        "### ✅ Already Paid? Enter Your Code"
+    )
 
     ca, cb = st.columns(2)
     with ca:
         code = st.text_input(
             "Access Code",
             type="password",
-            placeholder="Enter code from WhatsApp",
+            placeholder="Code sent via WhatsApp",
             key="paywall_code"
         )
         if st.button(
@@ -449,13 +482,14 @@ def show_paywall():
             use_container_width=True,
             key="activate_btn"
         ):
-            if code in [
-                get_timed_pwd(), MASTER_PWD
-            ]:
+            if code in [get_timed_pwd(), MASTER_PWD]:
                 st.session_state.authenticated = True
                 st.session_state.auth_type = "sub"
-                st.session_state.subscription_expiry\
-                    = time.time() + 30*24*3600
+                st.session_state.\
+                    subscription_expiry = (
+                    time.time() + 30*24*3600
+                )
+                clear_trial_restriction()
                 st.success(
                     "🎉 30 days access activated!"
                 )
@@ -463,116 +497,37 @@ def show_paywall():
                 st.rerun()
             else:
                 st.error(
-                    f"❌ Wrong code.\n"
+                    f"❌ Wrong code. "
                     f"Contact: {YOUR_WHATSAPP}"
                 )
     with cb:
         st.info(
-            "📱 Access code is sent via WhatsApp "
+            "📱 Access code sent via WhatsApp "
             "after payment verification.\n\n"
             f"Contact: **{YOUR_WHATSAPP}**\n\n"
             "Response within 1 hour"
         )
 
     if st.button("← Back to Login"):
-        for k in ["trial_started", "trial_start",
-                  "show_paywall"]:
-            st.session_state[k] = False
+        for k in [
+            "trial_started",
+            "trial_start",
+            "show_paywall",
+            "trial_used"
+        ]:
+            if k in st.session_state:
+                del st.session_state[k]
         st.rerun()
 
 
-# ══════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════
 # LOGIN PAGE
-# ══════════════════════════════════════════════════════════
-
-def ACCESS CONTROL GATE():
-    # ══════════════════════════════════════════════════════════
-# BROWSER STORAGE — Permanent Trial Tracking
-# ══════════════════════════════════════════════════════════
-
-def inject_trial_checker():
-    """
-    Inject JavaScript that:
-    1. Checks if trial was already used
-       (stored in browser localStorage)
-    2. If used → sets URL parameter ?trial=used
-    3. If not used → allows trial to start
-    """
-    st.components.v1.html("""
-<script>
-// Check localStorage for trial status
-var trialUsed = localStorage.getItem(
-    'hse_app_trial_used'
-);
-var trialExpiry = localStorage.getItem(
-    'hse_app_trial_expiry'
-);
-
-// If trial was used and is expired
-if (trialUsed === 'true') {
-    // Tell Streamlit via URL param
-    var url = new URL(window.location.href);
-    if (!url.searchParams.get('trial_status')) {
-        url.searchParams.set(
-            'trial_status', 'expired'
-        );
-        window.location.href = url.toString();
-    }
-}
-</script>
-""", height=0)
-
-
-def mark_trial_used_in_browser():
-    """
-    Inject JavaScript to permanently mark
-    trial as used in this browser.
-    """
-    st.components.v1.html("""
-<script>
-// Save to localStorage — persists after
-// browser close
-localStorage.setItem(
-    'hse_app_trial_used', 'true'
-);
-localStorage.setItem(
-    'hse_app_trial_expiry',
-    new Date().toISOString()
-);
-console.log('HSE App: Trial marked as used');
-</script>
-""", height=0)
-
-
-def clear_trial_for_subscriber():
-    """
-    When someone subscribes, clear the trial
-    restriction from their browser.
-    """
-    st.components.v1.html("""
-<script>
-localStorage.setItem(
-    'hse_app_trial_used', 'subscribed'
-);
-localStorage.setItem(
-    'hse_app_subscribed', 'true'
-);
-console.log('HSE App: Subscription activated');
-</script>
-""", height=0)
-
-
-# ══════════════════════════════════════════════════════════
-# LOGIN PAGE
-# ══════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════
 
 def show_login(trial_blocked=False):
-    """Main entry/login page."""
-
     st.markdown(f"""
-<div style="
-    background:linear-gradient(
-        135deg,#1F3864 0%,#C00000 100%);
+<div style="background:linear-gradient(
+    135deg,#1F3864 0%,#C00000 100%);
     border-radius:16px;padding:40px 32px;
     text-align:center;color:white;
     margin-bottom:30px;">
@@ -601,33 +556,27 @@ def show_login(trial_blocked=False):
 </div>
 """, unsafe_allow_html=True)
 
-    # ── Trial Already Used Warning ──────────────────────
     if trial_blocked:
         st.error(
-            "⏰ **Your free trial has already been used.**\n\n"
-            "The 15-minute free trial can only be used "
-            "**once per device**.\n\n"
-            "Please subscribe to continue using the app."
+            "⏰ **Your free trial has already "
+            "been used.**\n\n"
+            "The 15-minute free trial can only "
+            "be used **once per device**.\n\n"
+            "Please subscribe to continue."
         )
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(
+            "<br>", unsafe_allow_html=True
+        )
 
-    # ── Show 3 columns or 2 if trial blocked ───────────
     if trial_blocked:
-        # Only show Login + Subscribe (no trial option)
         c1, c2 = st.columns(2)
-        cols = [c1, c2]
-        show_trial_col = False
     else:
         c1, c2, c3 = st.columns(3)
-        cols = [c1, c2, c3]
-        show_trial_col = True
 
-    # Free Trial Column (only if not blocked)
-    if show_trial_col:
+    if not trial_blocked:
         with c1:
             st.markdown("""
-<div style="
-    background:#E8F5E9;
+<div style="background:#E8F5E9;
     border:2px solid #2E7D32;
     border-radius:12px;padding:22px;
     text-align:center;min-height:200px;">
@@ -639,9 +588,8 @@ def show_login(trial_blocked=False):
     </div>
     <div style="font-size:12px;
         color:#555;line-height:1.6;">
-        Try ALL features free for 15 mins.
-        <br><strong>One time only.</strong>
-        No payment needed.
+        Try ALL features free.<br>
+        <strong>One time only per device.</strong>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -654,22 +602,18 @@ def show_login(trial_blocked=False):
                 use_container_width=True,
                 key="start_trial"
             ):
-                # Mark trial as started
                 st.session_state.trial_started = True
                 st.session_state.trial_start = (
                     time.time()
                 )
                 st.session_state.trial_used = True
-                # Mark in browser storage
-                mark_trial_used_in_browser()
+                mark_trial_in_browser()
                 st.rerun()
 
-    # Access Code Column
-    code_col = c2 if show_trial_col else c1
+    code_col = c2 if not trial_blocked else c1
     with code_col:
         st.markdown("""
-<div style="
-    background:#E8F0FE;
+<div style="background:#E8F0FE;
     border:2px solid #1F3864;
     border-radius:12px;padding:22px;
     text-align:center;min-height:200px;">
@@ -682,7 +626,7 @@ def show_login(trial_blocked=False):
     <div style="font-size:12px;
         color:#555;line-height:1.6;">
         Already subscribed?
-        Enter your access code to login.
+        Enter your access code.
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -710,12 +654,8 @@ def show_login(trial_blocked=False):
                     subscription_expiry = (
                     time.time() + 30*24*3600
                 )
-                # Clear trial restriction
-                # for subscribers
-                clear_trial_for_subscriber()
-                st.success(
-                    "✅ Welcome! Loading..."
-                )
+                clear_trial_restriction()
+                st.success("✅ Welcome!")
                 time.sleep(1)
                 st.rerun()
             elif code:
@@ -724,12 +664,10 @@ def show_login(trial_blocked=False):
                     f"Contact: {YOUR_WHATSAPP}"
                 )
 
-    # Subscribe Column
-    sub_col = c3 if show_trial_col else c2
+    sub_col = c3 if not trial_blocked else c2
     with sub_col:
         st.markdown(f"""
-<div style="
-    background:#FFF3E0;
+<div style="background:#FFF3E0;
     border:2px solid #E65100;
     border-radius:12px;padding:22px;
     text-align:center;min-height:200px;">
@@ -743,9 +681,7 @@ def show_login(trial_blocked=False):
         font-weight:800;color:#E65100;">
         50 AED
         <span style="font-size:14px;
-            font-weight:400;">
-            /month
-        </span>
+            font-weight:400;">/month</span>
     </div>
     <div style="font-size:12px;color:#555;">
         JazzCash · Alfalah · ADCB
@@ -765,52 +701,42 @@ def show_login(trial_blocked=False):
 
     st.divider()
     st.markdown(f"""
-<div style="
-    background:#1F3864;border-radius:10px;
+<div style="background:#1F3864;
+    border-radius:10px;
     padding:12px 20px;text-align:center;
     color:white;font-size:13px;">
     📞 <strong>WhatsApp:</strong>
     {YOUR_WHATSAPP} &nbsp;|&nbsp;
-    ✉️ <strong>Email:</strong>
-    {YOUR_EMAIL} &nbsp;|&nbsp;
+    ✉️ <strong>Email:</strong> {YOUR_EMAIL}
+    &nbsp;|&nbsp;
     ⏰ Response within 1 hour
 </div>
 """, unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════
-# ACCESS CONTROL GATE — WITH PERMANENT TRIAL TRACKING
-# ══════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════
+# ACCESS CONTROL
+# ════════════════════════════════════════════════════════
 
-# Check URL parameters for trial status
-# (set by our JavaScript)
-trial_status_param = st.query_params.get(
+trial_param = st.query_params.get(
     "trial_status", ""
 )
-trial_blocked_by_browser = (
-    trial_status_param == "expired"
-)
+browser_blocked = (trial_param == "expired")
 
-# Show paywall if requested
 if st.session_state.get("show_paywall"):
     show_paywall()
     st.stop()
 
-# Show paywall if trial expired THIS session
 if (st.session_state.get("trial_started")
         and trial_expired()):
-    # Mark permanently in browser
-    mark_trial_used_in_browser()
+    mark_trial_in_browser()
     show_paywall()
     st.stop()
 
-# Check if authenticated (paid subscriber)
 if is_authenticated():
-    pass  # Continue to app
+    pass
 
-# Check if trial is currently running
 elif trial_running():
-    # Trial is active — show countdown
     start   = st.session_state.get(
         "trial_start", 0
     )
@@ -818,14 +744,13 @@ elif trial_running():
     mins    = max(0, FREE_TRIAL_MINS - elapsed)
     mi      = int(mins)
     se      = int((mins - mi) * 60)
-
     if mins > 5:
         st.markdown(f"""
 <div class="trial-bar">
     ⏱️ FREE TRIAL: <strong>{mi}m {se}s
     remaining</strong> — One time only!
-    Subscribe: <strong>50 AED / month</strong>
-    | WhatsApp: {YOUR_WHATSAPP}
+    Subscribe: <strong>50 AED/month</strong>
+    | {YOUR_WHATSAPP}
 </div>
 """, unsafe_allow_html=True)
     else:
@@ -833,29 +758,576 @@ elif trial_running():
 <div class="trial-warning">
     ⚠️ TRIAL ENDING: <strong>{mi}m {se}s
     left!</strong> Subscribe NOW →
-    WhatsApp: {YOUR_WHATSAPP}
+    {YOUR_WHATSAPP}
 </div>
 """, unsafe_allow_html=True)
         if st.button(
-            "💳 Subscribe — 50 AED/month",
+            "💳 Subscribe Now — 50 AED/month",
             key="sub_banner"
         ):
             st.session_state.show_paywall = True
             st.rerun()
 
-# Trial already used (from browser storage)
-elif trial_blocked_by_browser:
+elif browser_blocked:
     show_login(trial_blocked=True)
     st.stop()
 
-# Trial already marked as used this session
 elif st.session_state.get("trial_used"):
     show_login(trial_blocked=True)
     st.stop()
 
-# No access — show login
 else:
-    # Inject the browser checker first
     inject_trial_checker()
     show_login(trial_blocked=False)
     st.stop()
+
+
+# ════════════════════════════════════════════════════════
+# SIDEBAR
+# ════════════════════════════════════════════════════════
+
+with st.sidebar:
+    st.markdown("""
+<div style="text-align:center;
+    padding:16px 8px 8px 8px;">
+    <div style="font-size:38px;">🦺</div>
+    <div style="font-size:15px;
+        font-weight:800;color:white;
+        letter-spacing:0.5px;
+        margin-top:6px;line-height:1.3;">
+        UAE HSE<br>Compliance App
+    </div>
+    <div style="font-size:10px;
+        color:rgba(255,255,255,0.55);
+        margin-top:4px;">
+        ADOSH-SF v4.0 | DM Code
+    </div>
+</div>
+<hr style="border-color:
+    rgba(255,255,255,0.15);margin:8px 0;">
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+<div style="font-size:10px;font-weight:700;
+    color:rgba(255,255,255,0.55);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    padding:0 4px;margin-bottom:6px;">
+    🗺️ Select Emirate
+</div>
+""", unsafe_allow_html=True)
+
+    if "emirate" not in st.session_state:
+        st.session_state.emirate = None
+
+    sb1, sb2 = st.columns(2)
+    with sb1:
+        if st.button(
+            "🔵 Abu\nDhabi",
+            key="sb_ad",
+            use_container_width=True
+        ):
+            st.session_state.emirate = "Abu Dhabi"
+            st.rerun()
+    with sb2:
+        if st.button(
+            "🔴\nDubai",
+            key="sb_dxb",
+            use_container_width=True
+        ):
+            st.session_state.emirate = "Dubai"
+            st.rerun()
+
+    if st.session_state.emirate == "Abu Dhabi":
+        st.markdown("""
+<div style="background:rgba(0,100,200,0.2);
+    border:1px solid rgba(100,180,255,0.3);
+    border-radius:8px;padding:8px 10px;
+    font-size:11px;color:#90CAF9;
+    text-align:center;margin:6px 0;">
+    ✅ <strong>Abu Dhabi</strong> Active<br>
+    <span style="font-size:10px;
+        color:rgba(255,255,255,0.45);">
+        ADOSH-SF v4.0 | ADPHC
+    </span>
+</div>
+""", unsafe_allow_html=True)
+    elif st.session_state.emirate == "Dubai":
+        st.markdown("""
+<div style="background:rgba(200,0,0,0.2);
+    border:1px solid rgba(255,100,100,0.3);
+    border-radius:8px;padding:8px 10px;
+    font-size:11px;color:#EF9A9A;
+    text-align:center;margin:6px 0;">
+    ✅ <strong>Dubai</strong> Active<br>
+    <span style="font-size:10px;
+        color:rgba(255,255,255,0.45);">
+        Dubai Municipality Code
+    </span>
+</div>
+""", unsafe_allow_html=True)
+    else:
+        st.markdown("""
+<div style="background:rgba(255,200,0,0.12);
+    border:1px solid rgba(255,200,0,0.25);
+    border-radius:8px;padding:8px 10px;
+    font-size:11px;color:#FFC000;
+    text-align:center;margin:6px 0;">
+    ⬆️ Select an Emirate above
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+<hr style="border-color:
+    rgba(255,255,255,0.12);margin:8px 0;">
+<div style="font-size:10px;font-weight:700;
+    color:rgba(255,255,255,0.5);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    padding:0 4px;margin-bottom:6px;">
+    📱 App Modules
+</div>
+""", unsafe_allow_html=True)
+
+    for icon, name in [
+        ("📚", "Knowledge Base"),
+        ("🤖", "AI Chatbot"),
+        ("📋", "Risk Assessment"),
+        ("🗣️", "Toolbox Talks"),
+        ("📝", "Permit to Work"),
+        ("🚨", "Incident Report"),
+    ]:
+        st.markdown(f"""
+<div style="display:flex;
+    align-items:center;
+    padding:8px 12px;margin:3px 0;
+    border-radius:8px;
+    background:rgba(255,255,255,0.06);
+    border-left:3px solid
+        rgba(255,255,255,0.12);
+    font-size:13px;
+    color:rgba(255,255,255,0.85);">
+    <span style="font-size:15px;
+        margin-right:10px;">{icon}</span>
+    {name}
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+<hr style="border-color:
+    rgba(255,255,255,0.12);margin:8px 0;">
+<div style="font-size:10px;font-weight:700;
+    color:rgba(255,255,255,0.5);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    padding:0 4px;margin-bottom:6px;">
+    🚨 Emergency Numbers
+</div>
+<div style="background:rgba(192,0,0,0.18);
+    border:1px solid rgba(255,100,100,0.25);
+    border-radius:8px;padding:10px 12px;
+    font-size:12px;line-height:2;
+    color:rgba(255,255,255,0.88);">
+    🚔 Police: <strong>999</strong><br>
+    🚑 Ambulance: <strong>998</strong><br>
+    🚒 Civil Defence: <strong>997</strong><br>
+    🏛️ DM Emergency: <strong>800900</strong>
+</div>
+""", unsafe_allow_html=True)
+
+    today = date.today()
+    is_ban = (
+        (today.month == 6 and today.day >= 15)
+        or today.month in [7, 8]
+        or (today.month == 9 and today.day <= 15)
+    )
+    if is_ban:
+        st.markdown("""
+<div style="background:rgba(255,100,0,0.22);
+    border:1px solid rgba(255,150,0,0.4);
+    border-radius:8px;padding:10px 12px;
+    font-size:11px;color:#FFB74D;
+    text-align:center;
+    line-height:1.7;margin-top:8px;">
+    ☀️ <strong>MIDDAY BAN ACTIVE</strong><br>
+    No outdoor work<br>
+    <strong>12:30 — 15:00</strong><br>
+    15 Jun – 15 Sep<br>
+    <span style="font-size:10px;
+        color:rgba(255,255,255,0.45);">
+        MOHRE Res. 44/2022
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown(f"""
+<hr style="border-color:
+    rgba(255,255,255,0.12);margin:8px 0;">
+<div style="text-align:center;padding:4px;
+    font-size:10px;
+    color:rgba(255,255,255,0.4);
+    line-height:1.7;">
+    Developed by<br>
+    <strong style="
+        color:rgba(255,255,255,0.65);">
+        {YOUR_NAME}
+    </strong><br>
+    Senior HSSE Engineer | ENGC<br>
+    📱 {YOUR_WHATSAPP}
+</div>
+""", unsafe_allow_html=True)
+
+
+# ════════════════════════════════════════════════════════
+# MAIN PAGE CONTENT
+# ════════════════════════════════════════════════════════
+
+st.markdown("""
+<div style="background:linear-gradient(
+    135deg,#1F3864 0%,#C00000 100%);
+    border-radius:12px;
+    padding:28px 32px;
+    color:white;margin-bottom:20px;">
+    <div style="font-size:30px;
+        font-weight:800;margin:0;
+        letter-spacing:1px;">
+        🦺 UAE Construction HSE
+        Compliance App
+    </div>
+    <div style="font-size:14px;
+        opacity:0.9;margin-top:6px;">
+        Abu Dhabi & Dubai | ADOSH-SF v4.0 |
+        Dubai Municipality Code |
+        AI-Powered HSE Management System
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+col_c, col_s = st.columns([1, 1.4])
+
+with col_c:
+    st.markdown(f"""
+<div style="background:linear-gradient(
+    135deg,#1F3864 0%,#2E4F8A 100%);
+    border-radius:12px;padding:20px;
+    color:white;text-align:center;">
+    <div style="font-size:19px;
+        font-weight:700;margin-bottom:4px;">
+        {YOUR_NAME}
+    </div>
+    <div style="font-size:12px;
+        opacity:0.82;margin-bottom:12px;">
+        Senior HSSE Engineer<br>
+        Exeed National General
+        Contracting LLC (ENGC)
+    </div>
+    <hr style="border-color:
+        rgba(255,255,255,0.25);margin:10px 0;">
+    <div style="font-size:13px;margin:4px 0;">
+        📱 {YOUR_WHATSAPP}
+    </div>
+    <div style="font-size:13px;margin:4px 0;">
+        ✉️ {YOUR_EMAIL}
+    </div>
+    <div style="font-size:13px;margin:4px 0;">
+        📍 Abu Dhabi, UAE
+    </div>
+    <hr style="border-color:
+        rgba(255,255,255,0.25);margin:10px 0;">
+    <div style="font-size:10px;opacity:0.7;">
+        15 Yrs+ | NEBOSH Idip |
+        ADOSH Senior Practitioner |
+        ISO 45001 | ADOSH-SF v4.0
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+with col_s:
+    st.markdown("""
+<div style="background:#1F3864;color:white;
+    padding:8px 14px;border-radius:6px;
+    font-weight:700;font-size:13px;
+    margin-bottom:10px;">
+    🗺️ SELECT YOUR EMIRATE TO BEGIN
+</div>
+""", unsafe_allow_html=True)
+
+    if "emirate" not in st.session_state:
+        st.session_state.emirate = None
+
+    mc1, mc2 = st.columns(2)
+    with mc1:
+        if st.button(
+            "🔵 ABU DHABI\nADOSH-SF v4.0",
+            use_container_width=True,
+            type="primary",
+            key="main_ad"
+        ):
+            st.session_state.emirate = "Abu Dhabi"
+            st.rerun()
+    with mc2:
+        if st.button(
+            "🔴 DUBAI\nDM Code",
+            use_container_width=True,
+            type="secondary",
+            key="main_dxb"
+        ):
+            st.session_state.emirate = "Dubai"
+            st.rerun()
+
+    if st.session_state.emirate == "Abu Dhabi":
+        st.success(
+            "✅ **Abu Dhabi** selected — "
+            "ADOSH-SF v4.0 active"
+        )
+        st.info("👈 Use the sidebar to navigate")
+    elif st.session_state.emirate == "Dubai":
+        st.error(
+            "✅ **Dubai** selected — "
+            "Dubai Municipality Code active"
+        )
+        st.info("👈 Use the sidebar to navigate")
+    else:
+        st.warning(
+            "⬆️ Please select your Emirate "
+            "above to activate the app"
+        )
+
+    st.divider()
+    st.markdown("""
+<div style="background:#1F3864;color:white;
+    padding:8px 14px;border-radius:6px;
+    font-weight:700;font-size:13px;
+    margin-bottom:8px;">
+    🚨 UAE EMERGENCY NUMBERS
+</div>
+""", unsafe_allow_html=True)
+    e1, e2, e3, e4 = st.columns(4)
+    e1.metric("Police", "999")
+    e2.metric("Ambulance", "998")
+    e3.metric("Civil Defence", "997")
+    e4.metric("DM Emergency", "800900")
+
+st.divider()
+
+col_p, col_m = st.columns([1.3, 1])
+
+with col_p:
+    st.markdown("""
+<div style="background:#1F3864;color:white;
+    padding:8px 14px;border-radius:6px;
+    font-weight:700;font-size:13px;
+    margin-bottom:10px;">
+    🏗️ BLOOM LIVING PROJECTS — ABU DHABI
+</div>
+""", unsafe_allow_html=True)
+
+    p1, p2, p3 = st.columns(3)
+    for col, lbl, val in [
+        (p1, "CLIENT",
+         "Bloom Living / Bloom District"),
+        (p2, "PMC",
+         "Times Development"),
+        (p3, "CONSULTANT",
+         "Dar Al-Handasah"),
+    ]:
+        col.markdown(f"""
+<div style="background:#EEF2FF;
+    border-radius:8px;padding:10px;
+    font-size:12px;color:#1F3864;
+    margin:3px 0;">
+    <strong>{lbl}</strong><br>{val}
+</div>
+""", unsafe_allow_html=True)
+
+    p4, p5 = st.columns(2)
+    p4.markdown("""
+<div style="background:#EEF2FF;
+    border-radius:8px;padding:10px;
+    font-size:12px;color:#1F3864;">
+    <strong>MAIN CONTRACTOR</strong><br>ENGC
+</div>
+""", unsafe_allow_html=True)
+    p5.markdown("""
+<div style="background:#EEF2FF;
+    border-radius:8px;padding:10px;
+    font-size:12px;color:#1F3864;">
+    <strong>SUB-CONTRACTOR</strong><br>
+    ___________________________
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown("""
+<div style="background:#8B0000;color:white;
+    padding:7px 14px;border-radius:6px;
+    font-weight:700;font-size:12px;
+    margin-bottom:6px;">
+    🏡 RESIDENTIAL VILLA PROJECTS
+</div>
+""", unsafe_allow_html=True)
+
+    for name, ref in [
+        ("Olvera — Bloom Living",  "BL-VL-01"),
+        ("Almeria — Bloom Living", "BL-VL-02"),
+    ]:
+        st.markdown(f"""
+<div style="background:white;
+    border-left:5px solid #8B0000;
+    border-radius:8px;
+    padding:10px 14px;margin:4px 0;
+    box-shadow:0 1px 4px
+        rgba(0,0,0,0.08);">
+    <div style="font-weight:700;
+        font-size:13px;color:#8B0000;">
+        🏡 {name}
+    </div>
+    <div style="font-size:11px;color:#666;">
+        Residential Villa | Ref: {ref} |
+        Abu Dhabi, UAE
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+<div style="background:#1F3864;color:white;
+    padding:7px 14px;border-radius:6px;
+    font-weight:700;font-size:12px;
+    margin:10px 0 6px 0;">
+    🏛️ COMMUNITY CENTER PROJECTS
+</div>
+""", unsafe_allow_html=True)
+
+    for name, ref in [
+        ("Cordoba Community Center", "BL-CC-01"),
+        ("Toledo Community Center",  "BL-CC-02"),
+        ("Casares Community Center", "BL-CC-03"),
+    ]:
+        st.markdown(f"""
+<div style="background:white;
+    border-left:5px solid #1F3864;
+    border-radius:8px;
+    padding:10px 14px;margin:4px 0;
+    box-shadow:0 1px 4px
+        rgba(0,0,0,0.08);">
+    <div style="font-weight:700;
+        font-size:13px;color:#1F3864;">
+        🏛️ {name}
+    </div>
+    <div style="font-size:11px;color:#666;">
+        Community Center | Ref: {ref} |
+        Abu Dhabi, UAE
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("""
+<div style="background:#5C4033;color:white;
+    padding:7px 14px;border-radius:6px;
+    font-weight:700;font-size:12px;
+    margin:10px 0 6px 0;">
+    ⛽ SERVICE STATION PROJECT
+</div>
+""", unsafe_allow_html=True)
+    st.markdown("""
+<div style="background:white;
+    border-left:5px solid #5C4033;
+    border-radius:8px;
+    padding:10px 14px;margin:4px 0;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+    <div style="font-weight:700;
+        font-size:13px;color:#5C4033;">
+        ⛽ Service Station — Bloom Living
+    </div>
+    <div style="font-size:11px;color:#666;">
+        Plot C13, Zayed City |
+        Ref: BL-SS-01 | Abu Dhabi, UAE
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+with col_m:
+    st.markdown("""
+<div style="background:#1F3864;color:white;
+    padding:8px 14px;border-radius:6px;
+    font-weight:700;font-size:13px;
+    margin-bottom:10px;">
+    📱 APP MODULES
+</div>
+""", unsafe_allow_html=True)
+
+    for icon, name, color, desc in [
+        ("📚", "Knowledge Base",
+         "#1F3864",
+         "54 ADOSH CoPs + 23 Dubai Chapters"),
+        ("🤖", "AI HSE Chatbot",
+         "#0D47A1",
+         "Instant Emirates-specific answers"),
+        ("📋", "Risk Assessment",
+         "#1B5E20",
+         "14-column HIRA → .docx download"),
+        ("🗣️", "Toolbox Talks",
+         "#4A148C",
+         "AI-generated for any HSE topic"),
+        ("📝", "Permit to Work",
+         "#BF360C",
+         "Digital PTW — 7 permit types"),
+        ("🚨", "Incident Report",
+         "#C00000",
+         "5-Why analysis + action tables"),
+    ]:
+        st.markdown(f"""
+<div style="background:white;
+    border-left:5px solid {color};
+    border-radius:8px;
+    padding:10px 14px;margin:5px 0;
+    box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+    <div style="font-weight:700;
+        font-size:14px;color:{color};">
+        {icon} {name}
+    </div>
+    <div style="font-size:11px;
+        color:#666;margin-top:2px;">
+        {desc}
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.divider()
+    if is_ban:
+        st.error(
+            "☀️ **MIDDAY WORK BAN ACTIVE**\n\n"
+            "No outdoor work: **12:30 — 15:00**\n\n"
+            "15 June – 15 September\n\n"
+            "Ref: MOHRE Res. 44/2022 | "
+            "ADOSH CoP 11.0"
+        )
+    else:
+        st.info(
+            "☀️ **Summer Midday Work Ban:**\n\n"
+            "No outdoor work 12:30–15:00\n\n"
+            "Active: 15 June – 15 September\n\n"
+            "Ref: MOHRE Res. 44/2022"
+        )
+
+st.divider()
+st.markdown(f"""
+<div style="background:#1F3864;
+    border-radius:8px;
+    padding:14px 20px;
+    color:white;text-align:center;
+    font-size:12px;margin-top:10px;">
+    <strong>UAE Construction HSE
+    Compliance App</strong>
+    &nbsp;|&nbsp;
+    Developed by: {YOUR_NAME} —
+    Senior HSSE Engineer, ENGC
+    &nbsp;|&nbsp;
+    © {date.today().year} ENGC —
+    Bloom Living Projects, Abu Dhabi, UAE
+    &nbsp;|&nbsp;
+    <em>AI outputs must be verified by a
+    competent HSE professional.</em>
+</div>
+""", unsafe_allow_html=True)

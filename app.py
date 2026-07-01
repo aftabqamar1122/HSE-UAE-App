@@ -44,7 +44,626 @@ if (st.session_state.get("trial_started")
 
 # ── YOUR EXISTING app.py CODE CONTINUES BELOW ─────────────
 # (Keep all your existing CSS and content below this line)
-# (Do NOT add another st.set_page_config below)
+# (Do NOT add another st.set_page_config # ── CUSTOM SIDEBAR CSS ────────────────────────────────────
+st.markdown("""
+<style>
+
+/* ── Sidebar background ── */
+[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        #1F3864 0%,
+        #16294d 40%,
+        #0d1a33 100%
+    ) !important;
+}
+
+/* ── Sidebar width ── */
+[data-testid="stSidebar"] {
+    min-width: 260px !important;
+    max-width: 260px !important;
+}
+
+/* ── All sidebar text white ── */
+[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* ── Sidebar nav links ── */
+[data-testid="stSidebarNav"] a {
+    display: block !important;
+    padding: 10px 16px !important;
+    margin: 3px 8px !important;
+    border-radius: 8px !important;
+    color: rgba(255,255,255,0.85) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    border-left: 3px solid transparent !important;
+}
+
+/* ── Sidebar nav hover ── */
+[data-testid="stSidebarNav"] a:hover {
+    background: rgba(255,255,255,0.12) !important;
+    border-left: 3px solid #FFC000 !important;
+    color: white !important;
+    padding-left: 20px !important;
+}
+
+/* ── Active/selected nav link ── */
+[data-testid="stSidebarNav"] a[aria-current="page"] {
+    background: rgba(255,255,255,0.18) !important;
+    border-left: 3px solid #C00000 !important;
+    color: white !important;
+    font-weight: 700 !important;
+}
+
+/* ── Sidebar buttons ── */
+[data-testid="stSidebar"] .stButton > button {
+    background: rgba(255,255,255,0.12) !important;
+    color: white !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    font-size: 13px !important;
+    padding: 8px !important;
+    transition: all 0.2s !important;
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: rgba(255,255,255,0.22) !important;
+    border-color: #FFC000 !important;
+    color: #FFC000 !important;
+}
+
+/* ── Sidebar selectbox ── */
+[data-testid="stSidebar"] .stSelectbox > div > div {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    color: white !important;
+    border-radius: 8px !important;
+}
+
+/* ── Sidebar divider ── */
+[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.15) !important;
+    margin: 8px 0 !important;
+}
+
+/* ── Main page background ── */
+.main {
+    background-color: #f4f6f9 !important;
+}
+
+/* ── Hide default Streamlit menu ── */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+
+</style>
+""", unsafe_allow_html=True)
+# ── SIDEBAR ───────────────────────────────────────────────
+with st.sidebar:
+
+    # ── App Logo / Title ──────────────────────────────
+    st.markdown("""
+<div style="
+    text-align: center;
+    padding: 16px 8px 8px 8px;
+">
+    <div style="font-size: 40px;">🦺</div>
+    <div style="
+        font-size: 15px;
+        font-weight: 800;
+        color: white;
+        letter-spacing: 0.5px;
+        margin-top: 6px;
+        line-height: 1.3;
+    ">
+        UAE HSE<br>Compliance App
+    </div>
+    <div style="
+        font-size: 10px;
+        color: rgba(255,255,255,0.6);
+        margin-top: 4px;
+    ">
+        ADOSH-SF v4.0 | DM Code
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown(
+        "<hr>", unsafe_allow_html=True
+    )
+
+    # ── Emirate Selector in Sidebar ───────────────────
+    st.markdown("""
+<div style="
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 6px;
+">
+    🗺️ Select Emirate
+</div>
+""", unsafe_allow_html=True)
+
+    if "emirate" not in st.session_state:
+        st.session_state.emirate = None
+
+    col_sb1, col_sb2 = st.columns(2)
+    with col_sb1:
+        if st.button(
+            "🔵 Abu\nDhabi",
+            key="sb_ad",
+            use_container_width=True
+        ):
+            st.session_state.emirate = "Abu Dhabi"
+            st.rerun()
+
+    with col_sb2:
+        if st.button(
+            "🔴\nDubai",
+            key="sb_dxb",
+            use_container_width=True
+        ):
+            st.session_state.emirate = "Dubai"
+            st.rerun()
+
+    # Show selected emirate
+    if st.session_state.emirate == "Abu Dhabi":
+        st.markdown("""
+<div style="
+    background: rgba(0,100,200,0.25);
+    border: 1px solid rgba(100,180,255,0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #90CAF9;
+    text-align: center;
+    margin: 6px 0;
+">
+    ✅ <strong>Abu Dhabi</strong> Active<br>
+    <span style="font-size:10px;
+                 color:rgba(255,255,255,0.5);">
+        ADOSH-SF v4.0 | ADPHC
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+    elif st.session_state.emirate == "Dubai":
+        st.markdown("""
+<div style="
+    background: rgba(200,0,0,0.25);
+    border: 1px solid rgba(255,100,100,0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #EF9A9A;
+    text-align: center;
+    margin: 6px 0;
+">
+    ✅ <strong>Dubai</strong> Active<br>
+    <span style="font-size:10px;
+                 color:rgba(255,255,255,0.5);">
+        Dubai Municipality Code
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+    else:
+        st.markdown("""
+<div style="
+    background: rgba(255,200,0,0.15);
+    border: 1px solid rgba(255,200,0,0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #FFC000;
+    text-align: center;
+    margin: 6px 0;
+">
+    ⬆️ Select an Emirate above
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Navigation Label ──────────────────────────────
+    st.markdown("""
+<div style="
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 6px;
+">
+    📱 Modules
+</div>
+""", unsafe_allow_html=True)
+
+    # Module buttons with icons
+    modules = [
+        ("📚", "Knowledge Base",    "Knowledge_Base"),
+        ("🤖", "AI Chatbot",        "AI_Chatbot"),
+        ("📋", "Risk Assessment",   "Risk_Assessment"),
+        ("🗣️", "Toolbox Talks",     "Toolbox_Talks"),
+        ("📝", "Permit to Work",    "Permit_to_Work"),
+        ("🚨", "Incident Report",   "Incident_Report"),
+    ]
+
+    for icon, name, page in modules:
+        st.markdown(f"""
+<div style="
+    display: flex;
+    align-items: center;
+    padding: 9px 12px;
+    margin: 3px 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    border-left: 3px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    color: rgba(255,255,255,0.88);
+">
+    <span style="font-size:16px;
+                 margin-right:10px;">
+        {icon}
+    </span>
+    {name}
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Emergency Numbers ─────────────────────────────
+    st.markdown("""
+<div style="
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 8px;
+">
+    🚨 Emergency Numbers
+</div>
+<div style="
+    background: rgba(192,0,0,0.2);
+    border: 1px solid rgba(255,100,100,0.3);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 2;
+    color: rgba(255,255,255,0.9);
+">
+    🚔 Police: <strong>999</strong><br>
+    🚑 Ambulance: <strong>998</strong><br>
+    🚒 Civil Defence: <strong>997</strong><br>
+    🏛️ DM Emergency: <strong>800900</strong>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Summer Ban Alert ──────────────────────────────
+    today = date.today()
+    is_ban = (
+        (today.month == 6 and today.day >= 15)
+        or today.month in [7, 8]
+        or (today.month == 9 and today.day <= 15)
+    )
+
+    if is_ban:
+        st.markdown("""
+<div style="
+    background: rgba(255,100,0,0.25);
+    border: 1px solid rgba(255,150,0,0.5);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #FFB74D;
+    text-align: center;
+    line-height: 1.7;
+">
+    ☀️ <strong>MIDDAY BAN ACTIVE</strong><br>
+    No outdoor work<br>
+    <strong>12:30 — 15:00</strong><br>
+    15 Jun – 15 Sep<br>
+    <span style="font-size:10px;
+                 color:rgba(255,255,255,0.5);">
+        MOHRE Res. 44/2022
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Developer Info ────────────────────────────────
+    st.markdown("""
+<div style="
+    text-align: center;
+    padding: 4px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.7;
+">
+    Developed by<br>
+    <strong style="color:rgba(255,255,255,0.7);">
+        Muhammad Aftab Qamar
+    </strong><br>
+    Senior HSSE Engineer | ENGC<br>
+    📱 +971 52 267 1122
+</div>
+""", unsafe_allow_html=True)
+    # ── SIDEBAR ───────────────────────────────────────────────
+with st.sidebar:
+
+    # ── App Logo / Title ──────────────────────────────
+    st.markdown("""
+<div style="
+    text-align: center;
+    padding: 16px 8px 8px 8px;
+">
+    <div style="font-size: 40px;">🦺</div>
+    <div style="
+        font-size: 15px;
+        font-weight: 800;
+        color: white;
+        letter-spacing: 0.5px;
+        margin-top: 6px;
+        line-height: 1.3;
+    ">
+        UAE HSE<br>Compliance App
+    </div>
+    <div style="
+        font-size: 10px;
+        color: rgba(255,255,255,0.6);
+        margin-top: 4px;
+    ">
+        ADOSH-SF v4.0 | DM Code
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown(
+        "<hr>", unsafe_allow_html=True
+    )
+
+    # ── Emirate Selector in Sidebar ───────────────────
+    st.markdown("""
+<div style="
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 6px;
+">
+    🗺️ Select Emirate
+</div>
+""", unsafe_allow_html=True)
+
+    if "emirate" not in st.session_state:
+        st.session_state.emirate = None
+
+    col_sb1, col_sb2 = st.columns(2)
+    with col_sb1:
+        if st.button(
+            "🔵 Abu\nDhabi",
+            key="sb_ad",
+            use_container_width=True
+        ):
+            st.session_state.emirate = "Abu Dhabi"
+            st.rerun()
+
+    with col_sb2:
+        if st.button(
+            "🔴\nDubai",
+            key="sb_dxb",
+            use_container_width=True
+        ):
+            st.session_state.emirate = "Dubai"
+            st.rerun()
+
+    # Show selected emirate
+    if st.session_state.emirate == "Abu Dhabi":
+        st.markdown("""
+<div style="
+    background: rgba(0,100,200,0.25);
+    border: 1px solid rgba(100,180,255,0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #90CAF9;
+    text-align: center;
+    margin: 6px 0;
+">
+    ✅ <strong>Abu Dhabi</strong> Active<br>
+    <span style="font-size:10px;
+                 color:rgba(255,255,255,0.5);">
+        ADOSH-SF v4.0 | ADPHC
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+    elif st.session_state.emirate == "Dubai":
+        st.markdown("""
+<div style="
+    background: rgba(200,0,0,0.25);
+    border: 1px solid rgba(255,100,100,0.4);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #EF9A9A;
+    text-align: center;
+    margin: 6px 0;
+">
+    ✅ <strong>Dubai</strong> Active<br>
+    <span style="font-size:10px;
+                 color:rgba(255,255,255,0.5);">
+        Dubai Municipality Code
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+    else:
+        st.markdown("""
+<div style="
+    background: rgba(255,200,0,0.15);
+    border: 1px solid rgba(255,200,0,0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #FFC000;
+    text-align: center;
+    margin: 6px 0;
+">
+    ⬆️ Select an Emirate above
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Navigation Label ──────────────────────────────
+    st.markdown("""
+<div style="
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 6px;
+">
+    📱 Modules
+</div>
+""", unsafe_allow_html=True)
+
+    # Module buttons with icons
+    modules = [
+        ("📚", "Knowledge Base",    "Knowledge_Base"),
+        ("🤖", "AI Chatbot",        "AI_Chatbot"),
+        ("📋", "Risk Assessment",   "Risk_Assessment"),
+        ("🗣️", "Toolbox Talks",     "Toolbox_Talks"),
+        ("📝", "Permit to Work",    "Permit_to_Work"),
+        ("🚨", "Incident Report",   "Incident_Report"),
+    ]
+
+    for icon, name, page in modules:
+        st.markdown(f"""
+<div style="
+    display: flex;
+    align-items: center;
+    padding: 9px 12px;
+    margin: 3px 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    border-left: 3px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    color: rgba(255,255,255,0.88);
+">
+    <span style="font-size:16px;
+                 margin-right:10px;">
+        {icon}
+    </span>
+    {name}
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Emergency Numbers ─────────────────────────────
+    st.markdown("""
+<div style="
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 4px;
+    margin-bottom: 8px;
+">
+    🚨 Emergency Numbers
+</div>
+<div style="
+    background: rgba(192,0,0,0.2);
+    border: 1px solid rgba(255,100,100,0.3);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 2;
+    color: rgba(255,255,255,0.9);
+">
+    🚔 Police: <strong>999</strong><br>
+    🚑 Ambulance: <strong>998</strong><br>
+    🚒 Civil Defence: <strong>997</strong><br>
+    🏛️ DM Emergency: <strong>800900</strong>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Summer Ban Alert ──────────────────────────────
+    today = date.today()
+    is_ban = (
+        (today.month == 6 and today.day >= 15)
+        or today.month in [7, 8]
+        or (today.month == 9 and today.day <= 15)
+    )
+
+    if is_ban:
+        st.markdown("""
+<div style="
+    background: rgba(255,100,0,0.25);
+    border: 1px solid rgba(255,150,0,0.5);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #FFB74D;
+    text-align: center;
+    line-height: 1.7;
+">
+    ☀️ <strong>MIDDAY BAN ACTIVE</strong><br>
+    No outdoor work<br>
+    <strong>12:30 — 15:00</strong><br>
+    15 Jun – 15 Sep<br>
+    <span style="font-size:10px;
+                 color:rgba(255,255,255,0.5);">
+        MOHRE Res. 44/2022
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── Developer Info ────────────────────────────────
+    st.markdown("""
+<div style="
+    text-align: center;
+    padding: 4px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.7;
+">
+    Developed by<br>
+    <strong style="color:rgba(255,255,255,0.7);">
+        Muhammad Aftab Qamar
+    </strong><br>
+    Senior HSSE Engineer | ENGC<br>
+    📱 +971 52 267 1122
+</div>
+""", unsafe_allow_html=True)
 import streamlit as st
 from dotenv import load_dotenv
 import os

@@ -804,132 +804,388 @@ with tab_gen:
 
                 prepared_name = (
                     ms_prep if ms_prep
-                    else "Aftab Qamar"
+                    else "HSE Officer"
                 )
 
-                prompt = (
-                    "You are a senior HSE engineer "
-                    "in " + emirate + ", UAE.\n\n"
-                    "Generate a complete Method "
-                    "Statement for:\n"
-                    "ACTIVITY: " + final_activity + "\n"
-                    "PROJECT: " + ms_project + "\n"
-                    "LOCATION: " + ms_location + "\n"
-                    "CLIENT: " + ms_client + "\n"
-                    "CONSULTANT: " + ms_consultant + "\n"
-                    "CONTRACTOR: " + ms_company + "\n"
-                    "WORKERS: " + str(ms_workers) + "\n"
-                    "SPECIAL: " + ms_special + "\n"
-                    "REGULATION: " + reg + "\n\n"
-                    "Return ONLY valid JSON. "
-                    "No markdown. No text before or "
-                    "after. Start with { end with }\n\n"
-                    '{\n'
-                    '  "cop_ref": "specific CoP or '
-                    'Chapter ref",\n'
-                    '  "scope": "2-3 sentence scope '
-                    'paragraph specific to activity",\n'
-                    '  "personnel": [\n'
-                    '    {"role": "Site Engineer", '
-                    '"name": "TBD", '
-                    '"responsibility": "Supervise"},\n'
-                    '    {"role": "HSE Officer", '
-                    '"name": "' + prepared_name + '", '
-                    '"responsibility": "HSE oversight"},\n'
-                    '    {"role": "Foreman", '
-                    '"name": "TBD", '
-                    '"responsibility": "Direct workers"},\n'
-                    '    {"role": "Competent Worker", '
-                    '"name": "TBD", '
-                    '"responsibility": "Execute works"}\n'
-                    '  ],\n'
-                    '  "equipment": [\n'
-                    '    {"item": "name", '
-                    '"spec": "type/capacity", '
-                    '"qty": "1"},\n'
-                    '    ... 5-8 items relevant to '
-                    + final_activity + '\n'
-                    '  ],\n'
-                    '  "ppe": [\n'
-                    '    {"item": "Safety Helmet", '
-                    '"standard": "EN 397", '
-                    '"mandatory_for": "All"},\n'
-                    '    {"item": "Safety Footwear", '
-                    '"standard": "EN ISO 20345", '
-                    '"mandatory_for": "All"},\n'
-                    '    {"item": "High-Vis Vest", '
-                    '"standard": "EN ISO 20471", '
-                    '"mandatory_for": "All"},\n'
-                    '    ... 5-8 more PPE specific to '
-                    + final_activity + '\n'
-                    '  ],\n'
-                    '  "sequence": [\n'
-                    '    {"task": "Pre-work briefing", '
-                    '"safety_req": "Toolbox talk. '
-                    'PTW if required."},\n'
-                    '    ... 8-12 steps for '
-                    + final_activity + '\n'
-                    '  ],\n'
-                    '  "hazards": [\n'
-                    '    {"hazard": "specific hazard", '
-                    '"risk": "injury type", '
-                    '"controls": "controls with CoP", '
-                    '"initial_risk": "HIGH", '
-                    '"residual_risk": "LOW"},\n'
-                    '    ... 6-10 hazards specific to '
-                    + final_activity + '\n'
-                    '  ],\n'
-                    '  "permits": [\n'
-                    '    {"type": "permit name", '
-                    '"when": "when needed", '
-                    '"ref": "CoP ref"}\n'
-                    '  ],\n'
-                    '  "checklist": [\n'
-                    '    "All personnel briefed",\n'
-                    '    "PTW obtained if required",\n'
-                    '    ... 10-15 checklist items\n'
-                    '  ],\n'
-                    '  "references": [\n'
-                    '    "ADOSH-SF Version 4.0 '
-                    '(July 2024)",\n'
-                    '    ... 5-8 references\n'
-                    '  ]\n'
-                    '}\n\n'
-                    "Make all content SPECIFIC to "
-                    + final_activity
-                    + " in " + emirate + ". "
-                    "Return ONLY the JSON object."
-                )
+                # ── STEP 1: Generate structured
+                # sections one at a time to avoid
+                # JSON overflow ──────────────────
 
-                response = client_api.messages.create(
-                    model="claude-sonnet-4-6",
-                    max_tokens=4000,
-                    messages=[{
-                        "role": "user",
-                        "content": prompt
-                    }]
-                )
-
-                prog.progress(
-                    70,
-                    text="Parsing response..."
-                )
-
-                raw = (
-                    response.content[0].text.strip()
-                )
-                raw = re.sub(
-                    r'```json|```', '', raw
-                ).strip()
-                start = raw.find('{')
-                end   = raw.rfind('}') + 1
-                if start == -1 or end == 0:
-                    raise ValueError(
-                        "No JSON found in response"
+                def ask_ai(section_prompt):
+                    """Helper to call AI."""
+                    r = client_api.messages.create(
+                        model="claude-sonnet-4-6",
+                        max_tokens=1500,
+                        messages=[{
+                            "role": "user",
+                            "content": section_prompt
+                        }]
                     )
-                raw = raw[start:end]
+                    return r.content[0].text.strip()
 
-                content_data = json.loads(raw)
+                def safe_json_list(raw_text,
+                                   fallback=None):
+                    """
+                    Robustly parse a JSON array.
+                    Returns list or fallback.
+                    """
+                    if fallback is None:
+                        fallback = []
+                    # Clean markdown fences
+                    raw_text = re.sub(
+                        r'```json|```',
+                        '', raw_text
+                    ).strip()
+                    # Try as-is
+                    try:
+                        result = json.loads(raw_text)
+                        if isinstance(result, list):
+                            return result
+                        if isinstance(result, dict):
+                            # Maybe wrapped in a key
+                            for v in result.values():
+                                if isinstance(v, list):
+                                    return v
+                    except Exception:
+                        pass
+                    # Find [ ... ]
+                    s = raw_text.find('[')
+                    e = raw_text.rfind(']') + 1
+                    if s != -1 and e > 0:
+                        try:
+                            result = json.loads(
+                                raw_text[s:e]
+                            )
+                            if isinstance(result, list):
+                                return result
+                        except Exception:
+                            pass
+                    # Last resort: extract objects
+                    objs = re.findall(
+                        r'\{[^{}]+\}', raw_text
+                    )
+                    parsed = []
+                    for obj in objs:
+                        try:
+                            parsed.append(
+                                json.loads(obj)
+                            )
+                        except Exception:
+                            pass
+                    return parsed if parsed else fallback
+
+                def safe_json_str(raw_text,
+                                  fallback=""):
+                    """Parse a simple string value."""
+                    raw_text = re.sub(
+                        r'```json|```',
+                        '', raw_text
+                    ).strip()
+                    # Strip quotes if bare string
+                    if (raw_text.startswith('"')
+                            and raw_text.endswith('"')):
+                        return raw_text[1:-1]
+                    try:
+                        v = json.loads(raw_text)
+                        if isinstance(v, str):
+                            return v
+                        if isinstance(v, dict):
+                            for kk in [
+                                'scope','text',
+                                'value','content'
+                            ]:
+                                if kk in v:
+                                    return str(v[kk])
+                    except Exception:
+                        pass
+                    # Return cleaned raw text
+                    return (raw_text[:500]
+                            if raw_text else fallback)
+
+                ctx = (
+                    "Activity: " + final_activity
+                    + " | Project: " + ms_project
+                    + " | Emirate: " + emirate
+                    + " | Regulation: " + reg
+                    + " | Workers: " + str(ms_workers)
+                    + " | Special: " + ms_special
+                )
+
+                content_data = {}
+
+                # CoP reference
+                prog.progress(
+                    18, text="Getting CoP reference..."
+                )
+                cop_raw = ask_ai(
+                    "For this activity in "
+                    + emirate + ": "
+                    + final_activity
+                    + " — give ONLY the most relevant "
+                    "regulatory reference (e.g. "
+                    "'ADOSH CoP 29.0 — Excavation' "
+                    "or 'DM Code Chapter 7'). "
+                    "One line, no explanation."
+                )
+                content_data['cop_ref'] = (
+                    cop_raw[:200].strip()
+                )
+
+                # Scope
+                prog.progress(
+                    22, text="Generating scope..."
+                )
+                scope_raw = ask_ai(
+                    "Write 2-3 sentences describing "
+                    "the scope of work for: "
+                    + final_activity
+                    + " at project " + ms_project
+                    + " in " + emirate + ", UAE. "
+                    "Be specific and professional. "
+                    "Plain text only, no JSON."
+                )
+                content_data['scope'] = (
+                    scope_raw[:600].strip()
+                )
+
+                # Personnel
+                prog.progress(
+                    28, text="Generating personnel..."
+                )
+                pers_raw = ask_ai(
+                    "Return ONLY a JSON array of "
+                    "personnel for: "
+                    + final_activity + " in "
+                    + emirate + ".\n"
+                    "EXACTLY this format, 4-5 items:\n"
+                    '[{"role":"Site Engineer",'
+                    '"name":"TBD",'
+                    '"responsibility":"Supervise and '
+                    'direct works"},'
+                    '{"role":"HSE Officer",'
+                    '"name":"' + prepared_name + '",'
+                    '"responsibility":"HSE monitoring '
+                    'and compliance"},'
+                    '{"role":"Foreman",'
+                    '"name":"TBD",'
+                    '"responsibility":"Direct '
+                    'workers"},'
+                    '{"role":"Skilled Operative",'
+                    '"name":"TBD",'
+                    '"responsibility":"Execute '
+                    'activity safely"}]\n'
+                    "Return ONLY the JSON array."
+                )
+                content_data['personnel'] = (
+                    safe_json_list(pers_raw, [
+                        {"role": "Site Engineer",
+                         "name": "TBD",
+                         "responsibility": "Supervise"},
+                        {"role": "HSE Officer",
+                         "name": prepared_name,
+                         "responsibility":
+                             "HSE oversight"},
+                        {"role": "Foreman",
+                         "name": "TBD",
+                         "responsibility":
+                             "Direct workers"},
+                    ])
+                )
+
+                # Equipment
+                prog.progress(
+                    35, text="Generating equipment..."
+                )
+                equip_raw = ask_ai(
+                    "Return ONLY a JSON array of "
+                    "6 equipment items for: "
+                    + final_activity + " in "
+                    + emirate + ".\n"
+                    "EXACTLY this format:\n"
+                    '[{"item":"Equipment name",'
+                    '"spec":"Type and capacity",'
+                    '"qty":"1"}]\n'
+                    "Return ONLY the JSON array."
+                )
+                content_data['equipment'] = (
+                    safe_json_list(equip_raw, [
+                        {"item": "As required",
+                         "spec": "Per project specs",
+                         "qty": "TBD"},
+                    ])
+                )
+
+                # PPE
+                prog.progress(
+                    42, text="Generating PPE..."
+                )
+                ppe_raw = ask_ai(
+                    "Return ONLY a JSON array of "
+                    "PPE for: " + final_activity
+                    + " in " + emirate + ".\n"
+                    "Include 6 items. "
+                    "EXACTLY this format:\n"
+                    '[{"item":"Safety Helmet",'
+                    '"standard":"EN 397 / ANSI Z89.1",'
+                    '"mandatory_for":"All personnel"}]\n'
+                    "Always include helmet, boots, "
+                    "vest. Add activity-specific PPE. "
+                    "Return ONLY the JSON array."
+                )
+                content_data['ppe'] = (
+                    safe_json_list(ppe_raw, [
+                        {"item": "Safety Helmet",
+                         "standard": "EN 397",
+                         "mandatory_for": "All"},
+                        {"item": "Safety Footwear",
+                         "standard": "EN ISO 20345",
+                         "mandatory_for": "All"},
+                        {"item": "High-Vis Vest",
+                         "standard": "EN ISO 20471",
+                         "mandatory_for": "All"},
+                    ])
+                )
+
+                # Sequence of work
+                prog.progress(
+                    52,
+                    text="Generating work sequence..."
+                )
+                seq_raw = ask_ai(
+                    "Return ONLY a JSON array of "
+                    "8 work sequence steps for: "
+                    + final_activity + " in "
+                    + emirate + ".\n"
+                    "EXACTLY this format:\n"
+                    '[{"task":"Step description",'
+                    '"safety_req":"Safety requirement '
+                    'with ' + reg[:30] + ' reference"}]\n'
+                    "Start with pre-work briefing, "
+                    "end with post-work inspection. "
+                    "Return ONLY the JSON array."
+                )
+                content_data['sequence'] = (
+                    safe_json_list(seq_raw, [
+                        {"task": "Pre-work briefing",
+                         "safety_req":
+                             "Toolbox talk conducted"},
+                        {"task": "Area inspection",
+                         "safety_req":
+                             "Check area is safe"},
+                        {"task": "Execute works",
+                         "safety_req":
+                             "Follow procedures"},
+                        {"task": "Post-work check",
+                         "safety_req":
+                             "Verify area is safe"},
+                    ])
+                )
+
+                # Hazards
+                prog.progress(
+                    63, text="Generating hazards..."
+                )
+                haz_raw = ask_ai(
+                    "Return ONLY a JSON array of "
+                    "6 hazards for: "
+                    + final_activity + " in "
+                    + emirate + ".\n"
+                    "EXACTLY this format:\n"
+                    '[{"hazard":"Hazard name",'
+                    '"risk":"Injury or harm",'
+                    '"controls":"Control measures",'
+                    '"initial_risk":"HIGH",'
+                    '"residual_risk":"LOW"}]\n'
+                    "Use HIGH/MODERATE/LOW for risk. "
+                    "Reference CoP numbers in controls. "
+                    "Return ONLY the JSON array."
+                )
+                content_data['hazards'] = (
+                    safe_json_list(haz_raw, [
+                        {"hazard": "General hazards",
+                         "risk": "Injury",
+                         "controls":
+                             "Follow safe procedures",
+                         "initial_risk": "HIGH",
+                         "residual_risk": "LOW"},
+                    ])
+                )
+
+                # Permits
+                prog.progress(
+                    72, text="Generating permits..."
+                )
+                perm_raw = ask_ai(
+                    "Return ONLY a JSON array of "
+                    "permits required for: "
+                    + final_activity + " in "
+                    + emirate + ".\n"
+                    "EXACTLY this format:\n"
+                    '[{"type":"Permit name",'
+                    '"when":"When it is needed",'
+                    '"ref":"CoP or Code reference"}]\n'
+                    "If no permits needed return []. "
+                    "Return ONLY the JSON array."
+                )
+                content_data['permits'] = (
+                    safe_json_list(perm_raw, [])
+                )
+
+                # Checklist
+                prog.progress(
+                    80, text="Generating checklist..."
+                )
+                chk_raw = ask_ai(
+                    "Return ONLY a JSON array of "
+                    "10 pre-work checklist items "
+                    "(as plain strings) for: "
+                    + final_activity + " in "
+                    + emirate + ".\n"
+                    'Example: ["All workers briefed",'
+                    '"PTW obtained","Area inspected"]\n'
+                    "Return ONLY the JSON array."
+                )
+                content_data['checklist'] = (
+                    safe_json_list(chk_raw, [
+                        "All workers briefed",
+                        "PTW obtained if required",
+                        "Area inspected and cleared",
+                        "Equipment checked",
+                        "PPE issued to all workers",
+                    ])
+                )
+
+                # References
+                if emirate == "Abu Dhabi":
+                    content_data['references'] = [
+                        "ADOSH-SF Version 4.0 "
+                        "(July 2024)",
+                        content_data.get(
+                            'cop_ref',
+                            'ADOSH CoP — relevant'
+                        ),
+                        "ADOSH CoP 2.0 — PPE",
+                        "ADOSH CoP 11.0 — Heat Stress",
+                        "MOHRE Resolution 44/2022 "
+                        "— Midday Ban",
+                        "ISO 45001:2018 — OSH "
+                        "Management Systems",
+                    ]
+                else:
+                    content_data['references'] = [
+                        "Dubai Municipality Code of "
+                        "Construction Safety Practice",
+                        content_data.get(
+                            'cop_ref',
+                            'DM Code — relevant chapter'
+                        ),
+                        "DM Code Chapter 2 — Safety "
+                        "Management",
+                        "DM Code Chapter 5 — PPE",
+                        "UAE Federal Decree-Law "
+                        "33/2021",
+                        "ISO 45001:2018",
+                    ]
 
                 prog.progress(
                     85,
@@ -1027,17 +1283,17 @@ with tab_gen:
                         "Ref: DM Code Art. 2.3.2"
                     )
 
-            except json.JSONDecodeError as e:
-                prog.progress(0)
-                st.error(
-                    "JSON parse error: "
-                    + str(e)
-                    + "\n\nPlease try again — "
-                    "AI response was too complex."
-                )
             except Exception as e:
                 prog.progress(0)
-                st.error("Error: " + str(e))
+                err_msg = str(e)
+                st.error(
+                    "❌ Error generating Method "
+                    "Statement: " + err_msg
+                    + "\n\nPlease try again. "
+                    "If the error persists, try "
+                    "selecting a different activity "
+                    "or simplifying the special notes."
+                )
 
 
 # ════════════════════════════════════════════════════════
